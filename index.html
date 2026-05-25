@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>2048 - 经典数字合并游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-color: #faf8ef;
+            --grid-bg: #bbada0;
+            --cell-bg: #cdc1b4;
+            --text-color: #776e65;
+            --score-bg: #bbada0;
+            --btn-bg: #8f7a66;
+            --btn-hover: #9f8b77;
+            --accent: #f67c5f;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1a1a2e;
+            --grid-bg: #16213e;
+            --cell-bg: #0f3460;
+            --text-color: #e94560;
+            --score-bg: #16213e;
+            --btn-bg: #e94560;
+            --btn-hover: #ff6b6b;
+            --accent: #ffd700;
+        }
+
+        [data-theme="neon"] {
+            --bg-color: #0d0d0d;
+            --grid-bg: #1a1a1a;
+            --cell-bg: #2d2d2d;
+            --text-color: #00ff88;
+            --score-bg: #1a1a1a;
+            --btn-bg: #00ff88;
+            --btn-hover: #00ffaa;
+            --accent: #ff00ff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-color);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            touch-action: none;
+            user-select: none;
+            transition: background 0.5s ease;
+        }
+
+        .container {
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .title {
+            font-size: 48px;
+            font-weight: bold;
+            color: var(--text-color);
+            transition: color 0.3s;
+        }
+
+        .scores-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .score-box {
+            background: var(--score-bg);
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-align: center;
+            min-width: 80px;
+            transition: background 0.3s;
+        }
+
+        .score-label {
+            color: #eee4da;
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .score-value {
+            color: #ffffff;
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .settings-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .select-group, .btn-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .select-group label {
+            color: var(--text-color);
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        select {
+            background: var(--btn-bg);
+            color: #f9f6f2;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        select:hover {
+            background: var(--btn-hover);
+        }
+
+        .btn {
+            background: var(--btn-bg);
+            color: #f9f6f2;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: var(--btn-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.pause-btn {
+            background: var(--accent);
+        }
+
+        .btn.sound-btn {
+            padding: 10px 12px;
+        }
+
+        .game-message {
+            flex: 1;
+            text-align: right;
+            font-size: 14px;
+            color: var(--text-color);
+            font-weight: bold;
+        }
+
+        .grid-wrapper {
+            position: relative;
+            background: var(--grid-bg);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            transition: background 0.3s;
+        }
+
+        .grid {
+            display: grid;
+            gap: 15px;
+            transition: all 0.3s;
+        }
+
+        .grid.size-3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .grid.size-4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .grid.size-5 {
+            grid-template-columns: repeat(5, 1fr);
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            background: var(--cell-bg);
+            border-radius: 6px;
+            transition: background 0.3s;
+        }
+
+        .tiles-container {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            bottom: 15px;
+            pointer-events: none;
+        }
+
+        .tile {
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            border-radius: 6px;
+            transition: all 0.15s ease-out;
+        }
+
+        .tile-2 { background: #eee4da; color: #776e65; }
+        .tile-4 { background: #ede0c8; color: #776e65; }
+        .tile-8 { background: #f2b179; color: #f9f6f2; }
+        .tile-16 { background: #f59563; color: #f9f6f2; }
+        .tile-32 { background: #f67c5f; color: #f9f6f2; }
+        .tile-64 { background: #f65e3b; color: #f9f6f2; }
+        .tile-128 { background: #edcf72; color: #f9f6f2; }
+        .tile-256 { background: #edcc61; color: #f9f6f2; }
+        .tile-512 { background: #edc850; color: #f9f6f2; }
+        .tile-1024 { background: #edc53f; color: #f9f6f2; }
+        .tile-2048 { background: #edc22e; color: #f9f6f2; }
+        .tile-super { background: #3c3a32; color: #f9f6f2; }
+
+        [data-theme="dark"] .tile-2 { background: #0f3460; color: #e94560; }
+        [data-theme="dark"] .tile-4 { background: #16213e; color: #e94560; }
+        [data-theme="dark"] .tile-8 { background: #e94560; color: #fff; }
+        [data-theme="dark"] .tile-16 { background: #ff6b6b; color: #fff; }
+        [data-theme="dark"] .tile-32 { background: #ffd700; color: #1a1a2e; }
+        [data-theme="dark"] .tile-64 { background: #ffd700; color: #1a1a2e; }
+        [data-theme="dark"] .tile-128 { background: #ff6b6b; color: #fff; }
+        [data-theme="dark"] .tile-256 { background: #e94560; color: #fff; }
+        [data-theme="dark"] .tile-512 { background: #ffd700; color: #1a1a2e; }
+        [data-theme="dark"] .tile-1024 { background: #ff6b6b; color: #fff; }
+        [data-theme="dark"] .tile-2048 { background: #ffd700; color: #1a1a2e; }
+        [data-theme="dark"] .tile-super { background: #fff; color: #1a1a2e; }
+
+        [data-theme="neon"] .tile-2 { background: #00ff88; color: #0d0d0d; }
+        [data-theme="neon"] .tile-4 { background: #00ffaa; color: #0d0d0d; }
+        [data-theme="neon"] .tile-8 { background: #ff00ff; color: #fff; }
+        [data-theme="neon"] .tile-16 { background: #ff00aa; color: #fff; }
+        [data-theme="neon"] .tile-32 { background: #ffff00; color: #0d0d0d; }
+        [data-theme="neon"] .tile-64 { background: #ff8800; color: #fff; }
+        [data-theme="neon"] .tile-128 { background: #00ffff; color: #0d0d0d; }
+        [data-theme="neon"] .tile-256 { background: #88ff00; color: #0d0d0d; }
+        [data-theme="neon"] .tile-512 { background: #ff0088; color: #fff; }
+        [data-theme="neon"] .tile-1024 { background: #0088ff; color: #fff; }
+        [data-theme="neon"] .tile-2048 { background: #ffff00; color: #0d0d0d; }
+        [data-theme="neon"] .tile-super { background: #fff; color: #ff00ff; }
+
+        .tile-new {
+            animation: appear 0.2s ease;
+        }
+
+        .tile-merged {
+            animation: pop 0.2s ease;
+        }
+
+        @keyframes appear {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .score-popup {
+            position: absolute;
+            font-weight: bold;
+            color: var(--accent);
+            font-size: 24px;
+            animation: scoreFloat 0.8s ease-out forwards;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        @keyframes scoreFloat {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-50px) scale(1.5); opacity: 0; }
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(238, 228, 218, 0.85);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+            z-index: 50;
+        }
+
+        [data-theme="dark"] .overlay {
+            background: rgba(26, 26, 46, 0.9);
+        }
+
+        [data-theme="neon"] .overlay {
+            background: rgba(13, 13, 13, 0.9);
+        }
+
+        .overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+            animation: overlayFadeIn 0.4s ease;
+        }
+
+        @keyframes overlayFadeIn {
+            0% { opacity: 0; transform: scale(0.95); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .overlay.win .overlay-title {
+            color: #f67c5f;
+        }
+
+        .overlay-title {
+            font-size: 36px;
+            font-weight: bold;
+            color: var(--text-color);
+            margin-bottom: 10px;
+        }
+
+        .overlay-score {
+            font-size: 20px;
+            color: var(--text-color);
+            margin-bottom: 20px;
+        }
+
+        .overlay-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .leaderboard {
+            background: var(--grid-bg);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            transition: background 0.3s;
+        }
+
+        .leaderboard-title {
+            color: var(--text-color);
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .leaderboard-list {
+            list-style: none;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 10px;
+            background: var(--cell-bg);
+            border-radius: 4px;
+            margin-bottom: 5px;
+            color: var(--text-color);
+            font-size: 14px;
+        }
+
+        .leaderboard-item:nth-child(1) {
+            background: #edc22e;
+            color: #f9f6f2;
+        }
+
+        .leaderboard-item:nth-child(2) {
+            background: #edcf72;
+            color: #f9f6f2;
+        }
+
+        .leaderboard-item:nth-child(3) {
+            background: #f2b179;
+            color: #f9f6f2;
+        }
+
+        .instructions {
+            color: var(--text-color);
+            line-height: 1.6;
+            font-size: 13px;
+            padding: 10px;
+            background: var(--grid-bg);
+            border-radius: 8px;
+            transition: background 0.3s;
+        }
+
+        .instructions h3 {
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+
+        @media (max-width: 520px) {
+            .title {
+                font-size: 36px;
+            }
+            .score-box {
+                padding: 6px 10px;
+                min-width: 60px;
+            }
+            .score-value {
+                font-size: 16px;
+            }
+            .grid-wrapper {
+                padding: 10px;
+            }
+            .grid {
+                gap: 8px;
+            }
+            .btn {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+            select {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+            .settings-row {
+                justify-content: center;
+            }
+            .overlay-title {
+                font-size: 28px;
+            }
+            .overlay-score {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">2048</h1>
+            <div class="scores-container">
+                <div class="score-box">
+                    <div class="score-label">分数</div>
+                    <div class="score-value" id="score">0</div>
+                </div>
+                <div class="score-box">
+                    <div class="score-label">最高分</div>
+                    <div class="score-value" id="best-score">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-row">
+            <div class="select-group">
+                <label>网格:</label>
+                <select id="grid-size">
+                    <option value="3">3x3</option>
+                    <option value="4" selected>4x4</option>
+                    <option value="5">5x5</option>
+                </select>
+            </div>
+            <div class="select-group">
+                <label>主题:</label>
+                <select id="theme-select">
+                    <option value="default">经典</option>
+                    <option value="dark">暗黑</option>
+                    <option value="neon">霓虹</option>
+                </select>
+            </div>
+            <button class="btn sound-btn" id="sound-btn">🔊</button>
+        </div>
+
+        <div class="settings-row">
+            <div class="btn-group">
+                <button class="btn" id="start-btn">开始</button>
+                <button class="btn pause-btn" id="pause-btn">暂停</button>
+                <button class="btn" id="restart-btn">重开</button>
+            </div>
+            <div class="game-message" id="game-message">点击开始游戏</div>
+        </div>
+
+        <div class="grid-wrapper">
+            <div class="grid size-4" id="grid"></div>
+            <div class="tiles-container" id="tiles-container"></div>
+            <div class="overlay" id="overlay">
+                <div class="overlay-title" id="overlay-title">游戏结束</div>
+                <div class="overlay-score" id="overlay-score">最终分数: 0</div>
+                <div class="overlay-buttons">
+                    <button class="btn" id="overlay-btn">再来一局</button>
+                    <button class="btn" id="view-leaderboard-btn">排行榜</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="leaderboard" id="leaderboard" style="display: none;">
+            <div class="leaderboard-title">🏆 本地排行榜</div>
+            <ul class="leaderboard-list" id="leaderboard-list"></ul>
+            <button class="btn" id="close-leaderboard-btn" style="margin-top: 10px; width: 100%;">关闭</button>
+        </div>
+
+        <div class="instructions">
+            <h3>🎮 游戏规则</h3>
+            <p>• 使用 <strong>方向键</strong> (↑↓←→) 或 <strong>滑动屏幕</strong> 移动方块</p>
+            <p>• 相同数字的方块碰撞时会合并成它们的和</p>
+            <p>• 目标是得到 <strong>2048</strong> 这个数字！</p>
+            <p>• 3x3难度最高，5x5难度最低</p>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        'use strict';
+
+        const SoundManager = {
+            enabled: true,
+            audioContext: null,
+
+            init() {
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    console.log('Web Audio API not supported');
+                }
+            },
+
+            play(type) {
+                if (!this.enabled || !this.audioContext) return;
+
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+
+                const now = this.audioContext.currentTime;
+
+                switch (type) {
+                    case 'move':
+                        oscillator.frequency.setValueAtTime(400, now);
+                        oscillator.type = 'sine';
+                        gainNode.gain.setValueAtTime(0.1, now);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                        oscillator.start(now);
+                        oscillator.stop(now + 0.1);
+                        break;
+                    case 'merge':
+                        oscillator.frequency.setValueAtTime(600, now);
+                        oscillator.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+                        oscillator.type = 'sine';
+                        gainNode.gain.setValueAtTime(0.2, now);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                        oscillator.start(now);
+                        oscillator.stop(now + 0.15);
+                        break;
+                    case 'win':
+                        oscillator.frequency.setValueAtTime(523, now);
+                        oscillator.frequency.setValueAtTime(659, now + 0.1);
+                        oscillator.frequency.setValueAtTime(784, now + 0.2);
+                        oscillator.type = 'sine';
+                        gainNode.gain.setValueAtTime(0.3, now);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                        oscillator.start(now);
+                        oscillator.stop(now + 0.3);
+                        break;
+                    case 'gameover':
+                        oscillator.frequency.setValueAtTime(300, now);
+                        oscillator.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+                        oscillator.type = 'sawtooth';
+                        gainNode.gain.setValueAtTime(0.2, now);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                        oscillator.start(now);
+                        oscillator.stop(now + 0.3);
+                        break;
+                }
+            },
+
+            toggle() {
+                this.enabled = !this.enabled;
+                return this.enabled;
+            }
+        };
+
+        const Leaderboard = {
+            maxSize: 10,
+            storageKey: '2048-leaderboard',
+
+            getScores() {
+                try {
+                    const data = localStorage.getItem(this.storageKey);
+                    return data ? JSON.parse(data) : [];
+                } catch (e) {
+                    return [];
+                }
+            },
+
+            addScore(score, gridSize) {
+                const scores = this.getScores();
+                const entry = {
+                    score: score,
+                    gridSize: gridSize,
+                    date: new Date().toLocaleDateString('zh-CN')
+                };
+                scores.push(entry);
+                scores.sort((a, b) => b.score - a.score);
+                if (scores.length > this.maxSize) {
+                    scores.length = this.maxSize;
+                }
+                localStorage.setItem(this.storageKey, JSON.stringify(scores));
+                return scores;
+            },
+
+            render(listEl) {
+                const scores = this.getScores();
+                listEl.innerHTML = '';
+                if (scores.length === 0) {
+                    listEl.innerHTML = '<li class="leaderboard-item">暂无记录</li>';
+                    return;
+                }
+                scores.forEach((entry, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'leaderboard-item';
+                    li.innerHTML = `<span>#${index + 1} (${entry.gridSize}x${entry.gridSize})</span><span>${entry.score}分</span>`;
+                    listEl.appendChild(li);
+                });
+            }
+        };
+
+        class Game2048 {
+            constructor() {
+                this.size = 4;
+                this.grid = [];
+                this.score = 0;
+                this.bestScores = {};
+                this.gameOver = false;
+                this.won = false;
+                this.isPaused = false;
+                this.isStarted = false;
+                this.tileId = 0;
+                this.tiles = {};
+
+                this.loadBestScores();
+
+                this.scoreEl = document.getElementById('score');
+                this.bestScoreEl = document.getElementById('best-score');
+                this.gridEl = document.getElementById('grid');
+                this.tilesContainer = document.getElementById('tiles-container');
+                this.overlay = document.getElementById('overlay');
+                this.overlayTitle = document.getElementById('overlay-title');
+                this.overlayScore = document.getElementById('overlay-score');
+                this.gameMessage = document.getElementById('game-message');
+                this.gridSizeSelect = document.getElementById('grid-size');
+                this.themeSelect = document.getElementById('theme-select');
+                this.soundBtn = document.getElementById('sound-btn');
+                this.startBtn = document.getElementById('start-btn');
+                this.pauseBtn = document.getElementById('pause-btn');
+                this.restartBtn = document.getElementById('restart-btn');
+                this.overlayBtn = document.getElementById('overlay-btn');
+                this.viewLeaderboardBtn = document.getElementById('view-leaderboard-btn');
+                this.closeLeaderboardBtn = document.getElementById('close-leaderboard-btn');
+                this.leaderboardEl = document.getElementById('leaderboard');
+                this.leaderboardList = document.getElementById('leaderboard-list');
+
+                this.cellSize = 0;
+                this.gap = 15;
+
+                SoundManager.init();
+                this.init();
+            }
+
+            loadBestScores() {
+                try {
+                    const data = localStorage.getItem('2048-best-scores');
+                    this.bestScores = data ? JSON.parse(data) : { 3: 0, 4: 0, 5: 0 };
+                } catch (e) {
+                    this.bestScores = { 3: 0, 4: 0, 5: 0 };
+                }
+            }
+
+            saveBestScores() {
+                localStorage.setItem('2048-best-scores', JSON.stringify(this.bestScores));
+            }
+
+            init() {
+                this.createGrid();
+                this.calculateSizes();
+                this.bindEvents();
+                this.updateBestScoreDisplay();
+                this.updateMessage('点击开始游戏');
+            }
+
+            calculateSizes() {
+                const gridWidth = this.gridEl.offsetWidth;
+                this.gap = window.innerWidth <= 520 ? 8 : 15;
+                this.cellSize = (gridWidth - this.gap * (this.size - 1)) / this.size;
+            }
+
+            createGrid() {
+                this.gridEl.innerHTML = '';
+                this.gridEl.className = `grid size-${this.size}`;
+                for (let i = 0; i < this.size * this.size; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    this.gridEl.appendChild(cell);
+                }
+            }
+
+            bindEvents() {
+                document.addEventListener('keydown', (e) => this.handleKey(e));
+
+                this.gridSizeSelect.addEventListener('change', (e) => {
+                    this.size = parseInt(e.target.value);
+                    this.createGrid();
+                    this.calculateSizes();
+                    this.updateBestScoreDisplay();
+                    if (this.isStarted && !this.isPaused) {
+                        this.newGame();
+                    }
+                });
+
+                this.themeSelect.addEventListener('change', (e) => {
+                    document.body.setAttribute('data-theme', e.target.value);
+                });
+
+                this.soundBtn.addEventListener('click', () => {
+                    const enabled = SoundManager.toggle();
+                    this.soundBtn.textContent = enabled ? '🔊' : '🔇';
+                });
+
+                this.startBtn.addEventListener('click', () => this.startGame());
+                this.pauseBtn.addEventListener('click', () => this.togglePause());
+                this.restartBtn.addEventListener('click', () => this.newGame());
+                this.overlayBtn.addEventListener('click', () => this.newGame());
+                this.viewLeaderboardBtn.addEventListener('click', () => this.showLeaderboard());
+                this.closeLeaderboardBtn.addEventListener('click', () => this.hideLeaderboard());
+
+                let startX, startY;
+                const wrapper = document.querySelector('.grid-wrapper');
+
+                wrapper.addEventListener('touchstart', (e) => {
+                    startX = e.touches[0].clientX;
+                    startY = e.touches[0].clientY;
+                }, { passive: true });
+
+                wrapper.addEventListener('touchend', (e) => {
+                    if (!startX || !startY || this.isPaused || !this.isStarted) return;
+
+                    const dx = e.changedTouches[0].clientX - startX;
+                    const dy = e.changedTouches[0].clientY - startY;
+                    const absDx = Math.abs(dx);
+                    const absDy = Math.abs(dy);
+
+                    if (Math.max(absDx, absDy) > 30) {
+                        if (absDx > absDy) {
+                            this.move(dx > 0 ? 'right' : 'left');
+                        } else {
+                            this.move(dy > 0 ? 'down' : 'up');
+                        }
+                    }
+                    startX = null;
+                    startY = null;
+                }, { passive: true });
+
+                window.addEventListener('resize', () => {
+                    this.calculateSizes();
+                    this.renderAllTiles();
+                });
+            }
+
+            handleKey(e) {
+                if (!this.isStarted || this.isPaused || this.gameOver || this.won) return;
+
+                const map = {
+                    'ArrowUp': 'up', 'ArrowDown': 'down',
+                    'ArrowLeft': 'left', 'ArrowRight': 'right'
+                };
+
+                if (map[e.key]) {
+                    e.preventDefault();
+                    this.move(map[e.key]);
+                }
+            }
+
+            startGame() {
+                if (!this.isStarted) {
+                    this.isStarted = true;
+                    this.newGame();
+                    this.updateMessage('游戏进行中');
+                    this.startBtn.textContent = '进行中';
+                    this.startBtn.disabled = true;
+                }
+            }
+
+            togglePause() {
+                if (!this.isStarted) return;
+
+                this.isPaused = !this.isPaused;
+                this.pauseBtn.textContent = this.isPaused ? '继续' : '暂停';
+                this.updateMessage(this.isPaused ? '游戏暂停' : '游戏进行中');
+
+                if (this.isPaused) {
+                    this.overlay.classList.add('active');
+                    this.overlayTitle.textContent = '游戏暂停';
+                    this.overlayScore.textContent = `当前分数: ${this.score}`;
+                    this.overlayBtn.textContent = '继续游戏';
+                    this.viewLeaderboardBtn.style.display = 'none';
+                } else {
+                    this.overlay.classList.remove('active');
+                    this.viewLeaderboardBtn.style.display = 'inline-block';
+                }
+            }
+
+            newGame() {
+                this.grid = Array.from({ length: this.size }, () => Array(this.size).fill(0));
+                this.score = 0;
+                this.gameOver = false;
+                this.won = false;
+                this.isPaused = false;
+                this.tiles = {};
+                this.tileId = 0;
+
+                this.isStarted = true;
+                this.startBtn.textContent = '进行中';
+                this.startBtn.disabled = true;
+                this.pauseBtn.textContent = '暂停';
+
+                this.overlay.classList.remove('active', 'win');
+                this.viewLeaderboardBtn.style.display = 'inline-block';
+                this.overlayBtn.textContent = '再来一局';
+                this.updateMessage('游戏进行中');
+
+                this.addTile();
+                this.addTile();
+                this.renderAllTiles();
+                this.updateScore();
+            }
+
+            addTile() {
+                const empty = [];
+                for (let r = 0; r < this.size; r++) {
+                    for (let c = 0; c < this.size; c++) {
+                        if (this.grid[r][c] === 0) empty.push({ r, c });
+                    }
+                }
+                if (empty.length > 0) {
+                    const { r, c } = empty[Math.floor(Math.random() * empty.length)];
+                    const value = Math.random() < 0.9 ? 2 : 4;
+                    this.grid[r][c] = value;
+                    const id = ++this.tileId;
+                    this.tiles[id] = { r, c, value, isNew: true };
+                    return id;
+                }
+                return null;
+            }
+
+            move(direction) {
+                const vectors = {
+                    'up': { r: -1, c: 0 },
+                    'down': { r: 1, c: 0 },
+                    'left': { r: 0, c: -1 },
+                    'right': { r: 0, c: 1 }
+                };
+
+                const vector = vectors[direction];
+                const traversals = this.buildTraversals(vector);
+                const merged = Array.from({ length: this.size }, () => Array(this.size).fill(false));
+
+                let moved = false;
+                const mergedCells = [];
+                const mergeScores = [];
+
+                for (const r of traversals.r) {
+                    for (const c of traversals.c) {
+                        const value = this.grid[r][c];
+                        if (value === 0) continue;
+
+                        const { farthest, next } = this.findFarthest(r, c, vector);
+
+                        if (next && this.grid[next.r][next.c] === value && !merged[next.r][next.c]) {
+                            const newValue = value * 2;
+                            this.grid[next.r][next.c] = newValue;
+                            this.grid[r][c] = 0;
+                            merged[next.r][next.c] = true;
+                            this.score += newValue;
+                            mergedCells.push({ r: next.r, c: next.c, value: newValue });
+                            mergeScores.push({ r: next.r, c: next.c, score: newValue });
+                            moved = true;
+
+                            if (newValue === 2048 && !this.won) {
+                                this.won = true;
+                            }
+                        } else if (farthest.r !== r || farthest.c !== c) {
+                            this.grid[farthest.r][farthest.c] = value;
+                            this.grid[r][c] = 0;
+                            moved = true;
+                        }
+                    }
+                }
+
+                if (moved) {
+                    SoundManager.play('move');
+                    if (mergeScores.length > 0) {
+                        SoundManager.play('merge');
+                        this.showScorePopups(mergeScores);
+                    }
+
+                    this.addTile();
+                    this.renderAllTiles(mergedCells);
+
+                    if (this.won) {
+                        SoundManager.play('win');
+                        this.showOverlay('🎉 你赢了！', true);
+                        Leaderboard.addScore(this.score, this.size);
+                    } else if (!this.canMove()) {
+                        this.gameOver = true;
+                        SoundManager.play('gameover');
+                        this.showOverlay('游戏结束', false);
+                        Leaderboard.addScore(this.score, this.size);
+                    }
+
+                    this.updateScore();
+                }
+            }
+
+            buildTraversals(vector) {
+                const r = [], c = [];
+                for (let i = 0; i < this.size; i++) {
+                    r.push(i);
+                    c.push(i);
+                }
+                if (vector.r === 1) r.reverse();
+                if (vector.c === 1) c.reverse();
+                return { r, c };
+            }
+
+            findFarthest(r, c, vector) {
+                let prev;
+                do {
+                    prev = { r, c };
+                    r += vector.r;
+                    c += vector.c;
+                } while (this.inBounds(r, c) && this.grid[r][c] === 0);
+
+                const next = this.inBounds(r, c) ? { r, c } : null;
+                return { farthest: prev, next };
+            }
+
+            inBounds(r, c) {
+                return r >= 0 && r < this.size && c >= 0 && c < this.size;
+            }
+
+            canMove() {
+                for (let r = 0; r < this.size; r++) {
+                    for (let c = 0; c < this.size; c++) {
+                        if (this.grid[r][c] === 0) return true;
+                        const v = this.grid[r][c];
+                        if (r < this.size - 1 && this.grid[r + 1][c] === v) return true;
+                        if (c < this.size - 1 && this.grid[r][c + 1] === v) return true;
+                    }
+                }
+                return false;
+            }
+
+            renderAllTiles(mergedCells = []) {
+                this.tilesContainer.innerHTML = '';
+                const mergedSet = new Set(mergedCells.map(p => `${p.r},${p.c}`));
+
+                for (let r = 0; r < this.size; r++) {
+                    for (let c = 0; c < this.size; c++) {
+                        const value = this.grid[r][c];
+                        if (value === 0) continue;
+
+                        const tile = document.createElement('div');
+                        const tileClass = value <= 2048 ? `tile-${value}` : 'tile-super';
+                        tile.className = `tile ${tileClass}`;
+                        tile.textContent = value;
+
+                        const fontSizeFactor = this.size === 3 ? 0.45 : (this.size === 5 ? 0.35 : 0.4);
+                        tile.style.width = `${this.cellSize}px`;
+                        tile.style.height = `${this.cellSize}px`;
+                        tile.style.fontSize = `${this.cellSize * fontSizeFactor}px`;
+                        tile.style.left = `${c * (this.cellSize + this.gap)}px`;
+                        tile.style.top = `${r * (this.cellSize + this.gap)}px`;
+
+                        if (mergedSet.has(`${r},${c}`)) {
+                            tile.classList.add('tile-merged');
+                        }
+
+                        this.tilesContainer.appendChild(tile);
+                    }
+                }
+            }
+
+            showScorePopups(mergeScores) {
+                mergeScores.forEach(({ r, c, score }) => {
+                    const popup = document.createElement('div');
+                    popup.className = 'score-popup';
+                    popup.textContent = `+${score}`;
+                    popup.style.left = `${c * (this.cellSize + this.gap) + this.cellSize / 2}px`;
+                    popup.style.top = `${r * (this.cellSize + this.gap) + this.cellSize / 2}px`;
+                    this.tilesContainer.appendChild(popup);
+                    setTimeout(() => popup.remove(), 800);
+                });
+            }
+
+            updateScore() {
+                this.scoreEl.textContent = this.score;
+                if (this.score > this.bestScores[this.size]) {
+                    this.bestScores[this.size] = this.score;
+                    this.saveBestScores();
+                    this.updateBestScoreDisplay();
+                }
+            }
+
+            updateBestScoreDisplay() {
+                this.bestScoreEl.textContent = this.bestScores[this.size];
+            }
+
+            updateMessage(msg) {
+                this.gameMessage.textContent = msg;
+            }
+
+            showOverlay(msg, isWin) {
+                this.overlayTitle.textContent = msg;
+                this.overlayScore.textContent = `最终分数: ${this.score}`;
+                this.overlay.classList.add('active');
+                if (isWin) this.overlay.classList.add('win');
+                this.updateMessage(isWin ? '🎉 恭喜达到 2048！' : '没有可用的移动了');
+            }
+
+            showLeaderboard() {
+                this.overlay.classList.remove('active');
+                this.leaderboardEl.style.display = 'block';
+                Leaderboard.render(this.leaderboardList);
+            }
+
+            hideLeaderboard() {
+                this.leaderboardEl.style.display = 'none';
+                if (this.gameOver || this.won) {
+                    this.overlay.classList.add('active');
+                }
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => new Game2048());
+    })();
+    </script>
+</body>
+</html>
